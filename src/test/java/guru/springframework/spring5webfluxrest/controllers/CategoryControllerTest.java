@@ -6,7 +6,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.BDDMockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,7 +14,6 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +36,7 @@ class CategoryControllerTest {
                 .willReturn(Flux.just(Category.builder().description("Cat1").build(),
                         Category.builder().description("Cat2").build()));
         webTestClient.get()
-                .uri("/api/v1/categories")
+                .uri(CategoryController.BASE_URL)
                 .exchange()
                 .expectBodyList(Category.class)
                 .hasSize(2);
@@ -50,7 +48,7 @@ class CategoryControllerTest {
                 .willReturn(Mono.just(Category.builder().description("Cat1").build()));
 
         webTestClient.get()
-                .uri("/api/v1/categories/{id}","12345566")
+                .uri(CategoryController.BASE_URL + "/{id}","12345566")
                 .exchange()
                 .expectBody(Category.class)
                 .consumeWith( response -> Assertions.assertThat(response.getResponseBody()).isNotNull() );
@@ -63,7 +61,7 @@ class CategoryControllerTest {
         Mono<Category> catToSaveMono = Mono.just(Category.builder().description("Some test").build());
 
         webTestClient.post()
-                .uri("/api/v1/categories")
+                .uri(CategoryController.BASE_URL)
                 .body(catToSaveMono, Category.class)
                 .exchange()
                 .expectStatus().isCreated();
@@ -76,9 +74,24 @@ class CategoryControllerTest {
 
         Mono<Category> catToSaveMono = Mono.just(Category.builder().description("Some test").build());
         webTestClient.put()
-                .uri("/api/v1/categories/{id}", "122344")
+                .uri(CategoryController.BASE_URL + "/{id}", "122344")
                 .body(catToSaveMono, Category.class)
                 .exchange()
                 .expectStatus().isOk();
+    }
+
+    @Test
+    void patchWithChanges() {
+        given(categoryRepository.findById(anyString())).willReturn(Mono.just(Category.builder().build()));
+        given(categoryRepository.save(any(Category.class))).willReturn(Mono.just(Category.builder().build()));
+
+        Mono<Category> catForUpdate = Mono.just(Category.builder().description("Some description").build());
+
+        webTestClient.patch()
+                .uri(CategoryController.BASE_URL + "/{id}", "54321")
+                .body(catForUpdate, Category.class)
+                .exchange()
+                .expectStatus().isOk();
+        verify(categoryRepository,times(1)).save(any(Category.class));
     }
 }

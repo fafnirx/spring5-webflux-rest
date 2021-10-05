@@ -9,10 +9,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/v1/categories")
+@RequestMapping(CategoryController.BASE_URL)
 public class CategoryController {
+    public static final String BASE_URL="/api/v1/categories";
     private final CategoryRepository categoryRepository;
-
 
     public CategoryController(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
@@ -40,6 +40,17 @@ public class CategoryController {
         return categoryRepository.save(category);
     }
 
+    @ResponseStatus(HttpStatus.OK)
+    @PatchMapping("/{id}")
+    public Mono<Category>patch(@PathVariable String id, @RequestBody Category category) {
+        Category savedCategory = getById(id).block();
+
+        if (category.getDescription() != null) {
+            savedCategory.setDescription(category.getDescription());
+            return categoryRepository.save(savedCategory);
+        }
+        return Mono.just(savedCategory);
+    }
 
 
 }
